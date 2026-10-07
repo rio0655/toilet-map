@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>トイレマップ Prototype</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f7fa;color:#172033}
+header{height:64px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 22px;gap:18px;position:sticky;top:0;z-index:5}
+.logo{font-weight:800;font-size:20px}.logo span{color:#2563eb}
+.search{flex:1;max-width:540px;background:#f1f5f9;border:0;border-radius:12px;padding:11px 15px;color:#172033;outline:none}.sortrow{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#64748b;margin:5px 0 8px}.sortrow select{border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:white;color:#475569}
+main{display:grid;grid-template-columns:minmax(0,1fr) 390px;height:calc(100vh - 64px)}
+.map{position:relative;overflow:hidden;background:#dbeafe}
+.map:before{content:"";position:absolute;inset:-30%;background:
+linear-gradient(25deg,transparent 47%,#fff 48%,#fff 51%,transparent 52%),
+linear-gradient(155deg,transparent 44%,#fff 45%,#fff 49%,transparent 50%);
+background-size:260px 210px;opacity:.9;transform:rotate(-8deg)}
+.river{position:absolute;width:130%;height:130px;background:#93c5fd;top:43%;left:-10%;transform:rotate(-8deg);border-top:4px solid #bfdbfe;border-bottom:4px solid #bfdbfe}
+.park{position:absolute;background:#bbf7d0;border-radius:25px;opacity:.85}.p1{width:220px;height:120px;left:12%;top:18%}.p2{width:180px;height:100px;right:12%;bottom:17%}
+.pin{position:absolute;width:45px;height:45px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#2563eb;border:4px solid #fff;box-shadow:0 3px 12px #64748b88;cursor:pointer}
+.pin b{display:block;transform:rotate(45deg);color:#fff;text-align:center;font-size:12px;margin-top:9px}
+.pin:hover{background:#1d4ed8}.pin1{left:28%;top:35%}.pin2{left:55%;top:25%}.pin3{left:68%;top:52%}.pin4{left:40%;top:65%}.pin5{left:78%;top:35%}
+.current{position:absolute;left:48%;top:49%;width:18px;height:18px;background:#0ea5e9;border:4px solid white;border-radius:50%;box-shadow:0 0 0 8px #0ea5e933}
+.panel{background:#fff;overflow:auto;padding:20px;border-left:1px solid #e5e7eb}.title{font-size:18px;font-weight:800;margin:0 0 6px}.sub{font-size:13px;color:#64748b}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin:18px 0}.filter{border:1px solid #dbe1ea;background:white;border-radius:999px;padding:7px 10px;font-size:12px}.filter.active{background:#eff6ff;color:#1d4ed8;border-color:#93c5fd}
+.card{border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:10px 0;cursor:pointer;background:#fff}.card:hover{box-shadow:0 4px 16px #0f172a12}.row{display:flex;justify-content:space-between;gap:8px}.score{font-weight:800;color:#2563eb}.stars{letter-spacing:1px}.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}.tag{font-size:11px;background:#f1f5f9;border-radius:6px;padding:4px 6px;color:#475569}
+.detail{display:none;position:absolute;right:18px;bottom:18px;width:340px;background:#fff;border-radius:16px;padding:18px;box-shadow:0 10px 35px #0f172a33;z-index:3}.detail.show{display:block}.close{float:right;border:0;background:#f1f5f9;border-radius:50%;width:28px;height:28px}.metric{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}.cta{width:100%;margin-top:14px;border:0;background:#2563eb;color:white;border-radius:10px;padding:11px;font-weight:700}
+.ad{margin:14px 0;padding:13px 14px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;cursor:pointer}
+.adlabel{font-size:10px;color:#64748b;margin-bottom:5px}
+.adtitle{font-size:13px;font-weight:800}
+.adtext{font-size:11px;color:#64748b;margin-top:4px;line-height:1.5}
+.adlink{font-size:11px;color:#2563eb;font-weight:700;margin-top:7px}
+@media(max-width:800px){main{grid-template-columns:1fr;height:auto}.map{height:52vh}.panel{height:auto}.detail{width:calc(100% - 36px)}}
+</style>
+</head>
+<body>
+<header><div class="logo">🚻 <span>トイレマップ</span></div><input id="searchBox" class="search" placeholder="🔎 「梅田」「大阪駅」などで検索" oninput="renderCards()"></header>
+<main>
+<section class="map">
+<div class="river"></div><div class="park p1"></div><div class="park p2"></div><div class="current"></div>
+<div class="pin pin1" onclick="showDetail(0)"><b>4.7</b></div>
+<div class="pin pin2" onclick="showDetail(1)"><b>4.3</b></div>
+<div class="pin pin3" onclick="showDetail(2)"><b>4.1</b></div>
+<div class="pin pin4" onclick="showDetail(3)"><b>3.8</b></div>
+<div class="pin pin5" onclick="showDetail(4)"><b>4.6</b></div>
+<div class="detail" id="detail"><button class="close" onclick="hideDetail()">×</button><div id="detailBody"></div></div>
+</section>
+<aside class="panel">
+<h1 class="title">近くのトイレ</h1><div class="sub">大阪駅周辺・サンプルデータ</div>
+<div class="filters">
+<button class="filter active" onclick="setFilter(this,'score')">評価4以上</button>
+<button class="filter" onclick="setFilter(this,'anyone')">誰でも利用可</button>
+<button class="filter" onclick="setFilter(this,'barrier')">バリアフリー</button>
+<button class="filter" onclick="setFilter(this,'open')">24時間</button>
+</div>
+<div class="sortrow"><span id="resultCount">5件</span><select id="sortBox" onchange="renderCards()"><option value="score">評価が高い順</option><option value="distance">近い順</option></select></div>
+
+<div class="ad" onclick="alert('広告主ページへ移動（デモ）')">
+  <div class="adlabel">AD・スポンサー</div>
+  <div class="adtitle">☕ 梅田でちょっと休憩しませんか？</div>
+  <div class="adtext">徒歩3分のカフェ。トイレあり・Wi-Fiあり・電源あり。</div>
+  <div class="adlink">店舗ページを見る →</div>
+</div>
+
+<div id="cards"></div>
+</aside>
+</main>
+<script>
+const data=[
+["グランフロント大阪","4.7","3","★★★★★",["清潔","誰でも利用可","車椅子対応","温水洗浄"],"score",true,true,true,"18"],
+["大阪駅中央口カフェ","4.3","4","★★★★☆",["店内利用者","店員への声かけ不要","男女別"],"score",false,false,false,"9"],
+["うめきた商業施設","4.1","5","★★★★☆",["誰でも利用可","ベビー設備","広め"],"score",true,false,false,"14"],
+["駅前レストラン","3.8","2","★★★☆☆",["店内利用者","少し混雑"],"score",false,false,false,"6"],
+["ホテルロビー","4.6","6","★★★★★",["誰でも利用可","静か","バリアフリー"],"score",true,true,false,"21"]
+];
+let currentFilter="score";
+
+function setFilter(btn, filter){
+ document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));
+ btn.classList.add("active");
+ currentFilter=filter;
+ renderCards();
+}
+function renderCards(){
+ const q=(document.getElementById("searchBox")?.value||"").toLowerCase();
+ let arr=data.filter(d=>d[0].toLowerCase().includes(q));
+ if(currentFilter==="score") arr=arr.filter(d=>Number(d[1])>=4);
+ if(currentFilter==="anyone") arr=arr.filter(d=>d[5]);
+ if(currentFilter==="barrier") arr=arr.filter(d=>d[6]);
+ if(currentFilter==="open") arr=arr.filter(d=>d[7]);
+ const sort=document.getElementById("sortBox")?.value||"score";
+ arr.sort((a,b)=>sort==="distance"?Number(a[2])-Number(b[2]):Number(b[1])-Number(a[1]));
+ cards.innerHTML="";
+ arr.forEach((d)=>{
+   const i=data.indexOf(d);
+   cards.innerHTML+=`<div class="card" onclick="showDetail(${i})">
+   <div class="row"><b>${d[0]}</b><span class="score">★ ${d[1]}</span></div>
+   <div class="sub">徒歩${d[2]}分　<span class="stars">${d[3]}</span>　口コミ${d[8]}件</div>
+   <div class="tags">${d[4].map(x=>`<span class="tag">${x}</span>`).join("")}</div></div>`;
+ });
+ document.getElementById("resultCount").textContent=arr.length+"件";
+}
+renderCards();
+
+function showDetail(i){
+ const d=data[i];
+ document.getElementById("detailBody").innerHTML=
+ `<div class="sub">TOILET REVIEW</div>
+ <h2 class="title">${d[0]}</h2>
+ <div class="score">★ ${d[1]} / 5　<span style="font-size:11px;color:#64748b">口コミ ${d[8]}件</span></div>
+ <div class="metric"><span>清潔さ</span><b>${d[3]}</b></div>
+ <div class="metric"><span>利用条件</span><b>${d[4][0]}</b></div>
+ <div class="metric"><span>アクセス</span><b>徒歩${d[2]}分</b></div>
+ <div class="metric"><span>設備</span><b>${d[4].slice(1).join("・")||"基本設備"}</b></div>
+ <div class="tags">${d[4].map(x=>`<span class="tag">${x}</span>`).join("")}</div>
+ <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:10px;font-size:12px;color:#475569">
+ 「清潔で使いやすかった」という口コミが多いようです。<br>
+ ※口コミ内容はデモ用です。
+ </div>
+ <button class="cta" onclick="alert('評価投稿フォームを開く（デモ）')">このトイレを評価する</button>`;
+ document.getElementById("detail").classList.add("show")
+}
+function hideDetail(){document.getElementById("detail").classList.remove("show")}
+</script>
+</body></html>
